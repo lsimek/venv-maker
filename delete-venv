@@ -1,0 +1,74 @@
+#!/bin/bash
+
+DIR=$(realpath ~/python-projects)
+OUTPUT="/dev/stdout"
+ENV_NAME=$1
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+NC="\033[0m"
+
+#parse
+shift
+while [[ $# -gt 0 ]]; do
+	case $1 in
+		-d|--directory)
+			DIR="$2"
+			shift
+			shift
+			;;
+		*)
+			echo -e "${RED}Warning: some arguments were not recognized.${NC}" > $OUTPUT
+			shift
+			;;
+	esac
+done
+
+#check the name
+if [ -z "$ENV_NAME" ]; then
+	echo -e "${RED}Error: Environment name is required.${NC}" > $OUTPUT
+	exit 1
+fi
+
+#function to check
+function confirm() {
+	while true; do
+		read -p "Are you sure you wish to delete the environment $ENV_NAME located in directory $DIR (y/n)?" yn
+		case $yn in
+			[Yy]|Yes|yes|YES)
+				return 1
+				;;
+			[Nn]|No|no|NO)
+				return 0
+				;;
+			*)
+			echo -e "${RED}Error: Response was not recognized.${NC}" > $OUTPUT
+			;;
+		esac
+	done	
+}
+
+#check
+if confirm; then
+	echo -e "${RED}Error: aborted.${NC}" > $OUTPUT
+	exit 1
+fi
+
+# Deactivate the Python virtual environment
+echo -e "${GREEN}Dectivating...${NC}" > $OUTPUT
+deactivate
+
+# Remove the Python virtual environment
+echo -e "${GREEN}Removing $ENV_NAME...${NC}"
+rm -r $DIR/$ENV_NAME
+
+#remove alias
+echo -e "${GREEN}Removing the line from the .bash_aliases file...${NC}"
+sed -i "/alias activate-$ENV_NAME/d" ~/.bash_aliases
+
+#remove jupyter kernel
+echo -e "${GREEN}Removing the \"kernel-$ENV_NAME\" Jupyter kernel...${NC}"
+jupyter kernelspec remove "kernel-$ENV_NAME"
+
+#end
+echo -e "${GREEN}Complete.${NC}" > $OUTPUT

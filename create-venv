@@ -1,0 +1,80 @@
+#!/bin/bash
+
+DIR=$(realpath ~/python-projects)
+OUTPUT="/dev/stdout"
+ENV_NAME=$1
+PACKAGES=""
+REQ_FILES=()
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+NC="\033[0m"
+
+#parsing
+shift
+while [[ $# -gt 0 ]]; do
+	case $1 in
+		*.txt)
+			REQ_FILES+=("$1")
+			shift
+			;;
+		-d|--directory)
+			DIR="$2"
+			shift
+			shift
+			;;
+		*)
+			PACKAGES+=" $1"
+			shift	
+			;;
+	esac
+done
+
+#check the name
+if [ -z "$ENV_NAME" ]; then
+	echo -e "${RED}Error: Environment name is required.${NC}" > $OUTPUT
+	exit 1
+fi
+
+#create
+echo -e "${GREEN}Creating virtual environment $ENV_NAME in $DIR...${NC}" > $OUTPUT
+python3 -m venv $DIR/$ENV_NAME
+
+#add alias
+echo -e "${GREEN}Adding alias activate-$ENV_NAME to activate the virtual environment to ~/.bash_aliases...${NC}" > $OUTPUT
+echo -e "alias activate-$ENV_NAME=\"source $DIR/$ENV_NAME/bin/activate\"" >> ~/.bash_aliases
+
+
+#activate
+echo -e "${GREEN}Activating...${NC}" > $OUTPUT
+source $DIR/$ENV_NAME/bin/activate
+
+#install listed packages
+if [ -n "$PACKAGES" ]; then
+	echo -e "${GREEN}Installing listed packages...${NC}" > $OUTPUT
+	pip install $PACKAGES
+fi
+
+#install from files
+for REQ_FILE in "${REQ_FILES[@]}"; do
+	echo -e "${GREEN}Installing packages from $REQ_FILE...${NC}" > $OUTPUT
+	pip install -r $REQ_FILE
+done
+
+#install ipykernel
+echo -e "${GREEN}Installing ipykernel...${NC}" > $OUTPUT
+pip install ipykernel
+
+#add kernel for jupyter notebooks
+echo -e "${GREEN}Adding virtual environment as kernel for Jupyter with name \"kernel-$ENV_NAME\"${NC}" > $OUTPUT
+python3 -m ipykernel install --user --name="kernel-$ENV_NAME"
+
+#deactivate
+echo -e "${GREEN}Deactivating...${NC}" > $OUTPUT
+deactivate
+
+#end
+source ~/.bash_aliases
+echo -e "${GREEN}Complete.${NC}" > $OUTPUT
+
+
