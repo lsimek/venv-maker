@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DIR=$(realpath ~/python-projects)
+DIR=$HOME/python-projects
 OUTPUT="/dev/stdout"
 ENV_NAME=$1
 PACKAGES=""
